@@ -373,15 +373,21 @@ spec:
 
         ca_bundle=/mnt/trusted-ca/ca-bundle.crt
         proxy_ca_bundle=/mnt/proxy-ca-bundle/ca-bundle.crt
-        if [ -f "$ca_bundle" ] || [ -f "$proxy_ca_bundle" ]; then
-          if [ -f "$ca_bundle" ]; then
-            echo "[$(date --utc -Ins)] Using mounted CA bundle: $ca_bundle"
-            cp -vf $ca_bundle /etc/pki/ca-trust/source/anchors/ca-bundle.crt
-          fi
-          if [ -f "$proxy_ca_bundle" ]; then
-            echo "[$(date --utc -Ins)] Using mounted proxy CA bundle: $proxy_ca_bundle"
-            cp -vf $proxy_ca_bundle /etc/pki/ca-trust/source/anchors/proxy-ca-bundle.crt
-          fi
+        update_ca_trust=false
+
+        if [ -f "$ca_bundle" ]; then
+          echo "[$(date --utc -Ins)] Using mounted CA bundle: $ca_bundle"
+          cp -vf $ca_bundle /etc/pki/ca-trust/source/anchors/ca-bundle.crt
+          update_ca_trust=true
+        fi
+
+        if [ -f "$proxy_ca_bundle" ] && [ -n "$BUILDAH_HTTP_PROXY" ]; then
+          echo "[$(date --utc -Ins)] Using mounted proxy CA bundle: $proxy_ca_bundle"
+          cp -vf $proxy_ca_bundle /etc/pki/ca-trust/source/anchors/proxy-ca-bundle.crt
+          update_ca_trust=true
+        fi
+
+        if [ "$update_ca_trust" = "true" ]; then
           update-ca-trust
         fi
 
